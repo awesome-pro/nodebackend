@@ -1,6 +1,7 @@
 import express from "express";
 import bodyParser from "body-parser";
 import router from "./src/routers/item.routers.js";
+import csvRouter from "./src/routers/csv.routers..js";
 import dbConnect from "./src/lib/dbConnect.js";
 
 const app = express();
@@ -17,6 +18,7 @@ app.get("/", (req, res) => {
 
 // Mount the router on a specific route
 app.use("/api", router);
+app.use("/c", csvRouter);
 
 dbConnect()
 .then(() => {
