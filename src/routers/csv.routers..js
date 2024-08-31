@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { downloadCSV } from "../controllers/csv.controller.js";
+import { processCSV } from "../controllers/item.controller.js";
 
 const csvRouter = Router();
 
@@ -14,6 +15,10 @@ csvRouter.route("/download").get((req, res) => {
 
     downloadCSV(res, id); // Pass the id to the downloadCSV function
     //res.json({ message: "Downloading CSV...", id: id });
+});
+
+csvRouter.route("/upload").post((req, res) => {
+    processCSV(req, res);
 });
 
 csvRouter.route("/").get((req, res) => {

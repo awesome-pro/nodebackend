@@ -25,6 +25,7 @@
     "express": "^4.19.2",
     "fs": "^0.0.1-security",
     "json-2-csv": "^5.5.5",
+    "json2csv": "^6.0.0-alpha.2",
     "jsonwebtoken": "^9.0.2",
     "mongodb": "^6.8.0",
     "mongoose": "^8.6.0",

@@ -8,6 +8,7 @@ import path from "path";
 import { resolve } from "path";
 import csvjson from "csvjson";
 import connectDB from "../lib/db.js";
+import { Parser } from "json2csv";
 
 dotenv.config();
 
@@ -36,6 +37,7 @@ async function addItemToCSV(id, itemID) {
     return csv.save();
 }
 
+
 async function downloadCSV(res, id) {
     try {
         console.log(`Downloading CSV with id: ${id}`);
@@ -61,21 +63,17 @@ async function downloadCSV(res, id) {
         console.log(jsonData);
 
         // Step 6: Convert the JSON data to CSV format
-        const csvData = json2csv(jsonData);
+        const outputFilePath = `output-${id}.csv`;
+        await covertJSONtoCSV(jsonData, outputFilePath);
 
-        const csvFilePath = path.join('public', `output-${id}.csv`);
-
-        // Step 7: Write the CSV data to a file
-        fs.writeFileSync(csvFilePath, csvData, 'utf-8');
-        console.log(`CSV file created at ${csvFilePath}`);
-
-        // Step 8: Send the file to the client for download
-        res.download(csvFilePath, `output-${id}.csv`, (err) => {
-            // Handle download error and unlink the file
+        // Step 7: Send the file to the client for download
+        res.download(outputFilePath, `output-${id}.csv`, (err) => {
             if (err) {
                 console.error('Error downloading CSV:', err);
-                fs.unlinkSync(csvFilePath); // Cleanup the file
                 return res.status(500).json({ error: 'Internal server error' });
+            } else {
+                // Step 8: Cleanup the file after successful download
+                fs.unlinkSync(outputFilePath);
             }
         });
     } catch (error) {
@@ -83,28 +81,36 @@ async function downloadCSV(res, id) {
         return res.status(500).json({ error: 'Internal server error' });
     }
 }
+
 function covertJSONtoCSV(jsonData, outputFilePath) {
-    try {
-        const csvData = csvjson.toCSV(jsonData, {
-            headers: [
-                "serialNumber",
-                "productName",
-                "inputImageUrls",
-                "outputImageUrls"
-            ],
-            delimiter: ','
-        });
+    return new Promise((resolve, reject) => {
+        try {
+            const csvData = jsonData.map(item => ({
+                'Serial Number': item.serialNumber,
+                'Product Name': item.name,
+                'Input Image Urls': item.inputImageUrls.join(', '),
+                'Output Image Urls': item.outputImageUrls.join(', ')
+            }));
 
-        // Write the CSV data to a file
-        fs.writeFileSync(outputFilePath, csvData, 'utf-8');
-        console.log('Conversion successful. CSV file created.');
-        return csvData;
-    } catch (error) {
-        console.error(`Error converting JSON to CSV: ${error}`);
-        throw error;  // Rethrow to be caught in processCSV
-    }
+            const json2csvParser = new Parser();
+            const csv = json2csvParser.parse(csvData);
+
+            // Write the CSV data to a file
+            fs.writeFile(outputFilePath, csv, (err) => {
+                if (err) {
+                    console.error('Error writing CSV file:', err);
+                    return reject(err);
+                } else {
+                    console.log('CSV file has been saved successfully.');
+                    resolve();
+                }
+            });
+        } catch (error) {
+            console.error(`Error converting JSON to CSV: ${error}`);
+            reject(error);
+        }
+    });
 }
-
 
 export {
     addCSVToDB,
