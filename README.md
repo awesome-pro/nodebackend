@@ -3,6 +3,14 @@
 
 This repository contains an Image Processing System designed to process image data from CSV files, compress and upload the images to Cloudinary, store metadata in MongoDB, update the CSV with output image URLs, and provide APIs for status checks and webhook triggers.
 
+## Some Important Links
+- [API Documentation](https://drive.google.com/file/d/1U6MO_iYUSH8ivsmFPbfIFIi_mvSSxFO3/view?usp=drive_link)
+- [Postman Collection](https://www.postman.com/abhinandan-verma/workspace/pro-developers/collection/31971900-24b5de3c-0c81-4565-8142-118a0733238e?action=share&creator=31971900)
+- [Demo Video](https://drive.google.com/file/d/1U6MO_iYUSH8ivsmFPbfIFIi_mvSSxFO3/view?usp=drive_link)
+- [LLD Design](https://app.eraser.io/workspace/Ob3EN5IXxKZW1lOMg3Mi?origin=share)
+- [Live Host](https://nodebackend-y2pf.onrender.com/)
+- [Developer Portfolio](https://abhinandan-v.vercel.app/)
+
 ## Table of Contents
 
 1. [Overview](#overview)
