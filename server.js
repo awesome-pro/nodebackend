@@ -20,13 +20,9 @@ app.get("/", (req, res) => {
 
 dbConnect()
 .then(() => {
-    app.listen(process.env.PORT || 8000, () => {
+    app.listen(process.env.PORT || 3000, () => {
         console.log(`⚙️ Server is running at port : ${process.env.PORT || 3000}`);
     })
-
-    app.use("/api", router).listen(3000, () => {
-        console.log("Server is running on port 3000");
-    });
 
     app.post('/webhook', (req, res) => {
         const { process, status, message } = req.body;
