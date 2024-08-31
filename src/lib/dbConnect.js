@@ -1,4 +1,13 @@
 import mongoose from "mongoose";
+import dotenv from "dotenv";
+
+dotenv.config();
+console.log(process.env.MONGODB_URI);
+
+if (!process.env.MONGODB_URI) {
+    console.error("MongoDB URI is missing. Please check .env file");
+    process.exit(1);
+}
 
 const connection = {};
 
@@ -9,7 +18,7 @@ async function dbConnect() {
     }
 
   try {
-      const db = await mongoose.connect(process.env.MONGODB_URI || "mongodb+srv://abhinandanverma551:abhi1234@cluster0.9n5cg.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0", {});
+      const db = await mongoose.connect(process.env.MONGODB_URI, {});
       connection.isConnected = db.connections[0].readyState;
       console.log("DB Connected successfully :)");
   } catch (error) {

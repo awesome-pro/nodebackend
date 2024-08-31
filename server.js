@@ -1,8 +1,8 @@
 import express from "express";
 import bodyParser from "body-parser";
 import multer from "multer";
-import router from "./routers/item.routers.js";
-import dbConnect from "./lib/dbConnect.js";
+import router from "./src/routers/item.routers.js";
+import dbConnect from "./src/lib/dbConnect.js";
 
 const app = express();
 
