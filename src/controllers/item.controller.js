@@ -1,4 +1,4 @@
-import fs from "fs";
+import fs, { stat } from "fs";
 import csvParser from "csv-parser";
 import { createObjectCsvWriter as csvWriter } from 'csv-writer';
 import sharp from "sharp";
@@ -11,6 +11,8 @@ import { sendWebhookUpdate } from "../webhook.js";
 import { json2csv } from 'json-2-csv';
 import objectsToCsv from "objects-to-csv";
 import csvjson from "csvjson";
+import CSV from "../model/csv.model.js";
+import { error } from "console";
 
 
 // Handle the CSV processing and image uploading
@@ -107,17 +109,20 @@ async function resizeAndCompressImage(inputFilePath, outputFileName) {
     }
 }
 
-async function uploadToDB(serialNumber, productName, inputImageUrls, outputImageUrls) {
+async function uploadToDB(serialNumber, productName, inputImageUrls, outputImageUrls, id) {
     await sendWebhookUpdate('Database Upload', 'In Progress', 'Uploading items to database');
     const jsonData = [];
     try {
-        const item = new Item({
+        const item = {
             serialNumber,
             name: productName,
             inputImageUrls: inputImageUrls,
             outputImageUrls: outputImageUrls,
-        });
-        const response = await item.save();
+        }
+        // update the status and save the item to the database
+
+        const response = await CSV.findByIdAndUpdate(id, { $push: { items: item } }, { new: true });
+
         console.log(response);
         if (response) {
             console.log(`Item saved to database: ${response}`);
@@ -147,6 +152,7 @@ const processCSV = async (req, res) => {
         const imageUrls = [];
         const rows = [];
         const outputFilePath = path.join('public', 'output.csv');
+        let id = "";
 
         await sendWebhookUpdate('CSV Processing', 'In Progress', 'Processing CSV file');
 
@@ -155,7 +161,7 @@ const processCSV = async (req, res) => {
             fs.createReadStream(req.file.path)
                 .pipe(csvParser())
                 .on('data', (row) => {
-                    if (validateRow(row)) {
+                    if (validateRow(row)) {     
                         const inputUrls = row['Input Image Urls'].split(',').map(url => url.trim());
                         imageUrls.push(...inputUrls);
                         rows.push({
@@ -166,7 +172,6 @@ const processCSV = async (req, res) => {
                         });
 
                         console.log(`Row processed: ${JSON.stringify(row)}`);
-
                        
                     } else {
                         sendWebhookUpdate('CSV Processing', 'Failed', 'Invalid CSV format');
@@ -175,6 +180,28 @@ const processCSV = async (req, res) => {
                 })
                 .on('end', () => {
                     sendWebhookUpdate('CSV Processing', 'Completed', 'CSV file successfully processed');
+                    const newCSV = new CSV({
+                        name: req.file.originalname,
+                        itemIDs: [],
+                        status: 'ID generated'
+                    })
+
+                    newCSV.save().then((response) => {
+                        id = response._id;
+                        console.log("ID generated: " + id);
+
+                        res.status(200).json({
+                            message: 'CSV validated successfully',
+                            request_id: id
+                        })
+
+                    }).catch((error) => {
+                        console.error(`Error saving CSV to database: ${error}`);
+                        sendWebhookUpdate('Database Upload', 'Failed', 'Error uploading CSV to database');
+
+                        res.status(500).json({ error: 'Internal server error while generating id' });
+                    });
+        
                     resolve();
                 })
                 .on('error', (error) => {
