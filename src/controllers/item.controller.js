@@ -156,6 +156,9 @@ const processCSV = async (req, res) => {
                 const outputUrl = await processURL(url, `image-${row.serialNumber}-${i}.jpg`);
                 if (outputUrl) {
                     row.outputImageUrls.push(outputUrl);
+
+                    // delete the file after processing
+                    fs.unlink(outputUrl);
                 } else {
                     console.error(`Failed to process URL: ${url}`);
                     sendWebhookUpdate('Image Processing', 'Failed', `Failed to process image URL: ${url}`);
