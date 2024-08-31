@@ -26,7 +26,7 @@ function validateRow(row) {
 // Download an image from a URL and save it to the input directory
 async function downloadImage(url, filename) {
     await sendWebhookUpdate('Downloading Image', 'In Progress', 'Uploading images to Cloudinary');
-    const inputDirectory = path.join('uploads', 'input');
+    const inputDirectory = path.join('public', 'input');
 
     // Ensure the input directory exists
     if (!fs.existsSync(inputDirectory)) {
@@ -94,6 +94,10 @@ async function resizeAndCompressImage(inputFilePath, outputFileName) {
 
         console.log(`Image resized and compressed. Saved to ${outputFilePath}`);
         await sendWebhookUpdate('Resizing Image', 'Completed', 'Image resized and compressed successfully');
+
+        // unlink the input  file from the local storage
+        fs.unlinkSync(inputFilePath);
+        
         return outputFilePath;
     } catch (error) {
         console.error(`Error processing image: ${error}`);
