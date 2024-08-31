@@ -2,7 +2,7 @@ import express from "express";
 import bodyParser from "body-parser";
 import router from "./src/routers/item.routers.js";
 import csvRouter from "./src/routers/csv.routers..js";
-import dbConnect from "./src/lib/dbConnect.js";
+import connectDB from "./src/lib/db.js";
 
 const app = express();
 
@@ -18,9 +18,9 @@ app.get("/", (req, res) => {
 
 // Mount the router on a specific route
 app.use("/api", router);
-app.use("/c", csvRouter);
+app.use("/csv", csvRouter);
 
-dbConnect()
+connectDB()
 .then(() => {
     app.listen(process.env.PORT || 3000, () => {
         console.log(`⚙️ Server is running at port : ${process.env.PORT || 3000}`);

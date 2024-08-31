@@ -7,6 +7,7 @@ import fs from "fs";
 import path from "path";
 import { resolve } from "path";
 import csvjson from "csvjson";
+import connectDB from "../lib/db.js";
 
 dotenv.config();
 
@@ -39,49 +40,49 @@ async function downloadCSV(res, id) {
     try {
         console.log(`Downloading CSV with id: ${id}`);
 
-        // Step 1: Fetch the CSV record from the database
+        // Step 1: Ensure database connection is established
+        await connectDB();
+
+        // Step 2: Fetch the CSV record from the database
         const csv = await CSV.findById(id);
-        console.log(csv);
-        // Step 2: Check if the CSV record exists
+
+        // Step 3: Check if the CSV record exists
         if (!csv) {
             return res.status(404).json({ error: 'CSV not found' });
         }
 
-        //Step 3: Check if the CSV processing is completed
+        // Step 4: Check if the CSV processing is completed
         if (csv.status !== 'Completed') {
-            return res.status(400).json({ error: 'CSV yet not generated', status: csv.status, download_url: `http://localhost:3000/c/download?id=${id}` });
+            return res.status(400).json({ error: 'CSV not yet generated', status: csv.status, download_url: `http://localhost:3000/c/download?id=${id}` });
         }
 
-        // Step 4: Process the JSON data from the CSV record
+        // Step 5: Process the JSON data from the CSV record
         const jsonData = csv.items;
         console.log(jsonData);
 
-        // Step 5: Convert the JSON data to CSV format
-        const csvData = json2csv(jsonData)
+        // Step 6: Convert the JSON data to CSV format
+        const csvData = json2csv(jsonData);
 
-        const csvFilePath =  path.join('public', `output-${id}.csv`);
+        const csvFilePath = path.join('public', `output-${id}.csv`);
 
-        // Step 6: Write the CSV data to a file
+        // Step 7: Write the CSV data to a file
         fs.writeFileSync(csvFilePath, csvData, 'utf-8');
         console.log(`CSV file created at ${csvFilePath}`);
 
-        // Step 7: Send the file to the client for download
-        const r = res.download(csvFilePath, `output-${id}.csv`, (err) => {
+        // Step 8: Send the file to the client for download
+        res.download(csvFilePath, `output-${id}.csv`, (err) => {
+            // Handle download error and unlink the file
             if (err) {
                 console.error('Error downloading CSV:', err);
-                // unlink the file
-                fs.unlinkSync(csvFilePath);
+                fs.unlinkSync(csvFilePath); // Cleanup the file
                 return res.status(500).json({ error: 'Internal server error' });
             }
-        })
-
-        console.log("Downloaded"+ r);
+        });
     } catch (error) {
         console.error('Error during CSV download:', error);
-        res.status(500).json({ error: 'Internal server error' });
+        return res.status(500).json({ error: 'Internal server error' });
     }
 }
-
 function covertJSONtoCSV(jsonData, outputFilePath) {
     try {
         const csvData = csvjson.toCSV(jsonData, {

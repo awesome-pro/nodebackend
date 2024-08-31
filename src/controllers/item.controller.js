@@ -142,9 +142,6 @@ const processCSV = async (req, res) => {
 
         const imageUrls = [];
         const rows = [];
-        const outputFilePath = path.join('public', 'output.csv');
-
-        await sendWebhookUpdate('CSV Processing', 'In Progress', 'Processing CSV file');
 
         // Step 1: Process the CSV file
         await new Promise((resolve, reject) => {
@@ -164,12 +161,10 @@ const processCSV = async (req, res) => {
                         console.log(`Row processed: ${JSON.stringify(row)}`);
                        
                     } else {
-                        sendWebhookUpdate('CSV Processing', 'Failed', 'Invalid CSV format');
                         reject(new Error('Invalid CSV format'));
                     }
                 })
                 .on('end', () => {
-                    sendWebhookUpdate('CSV Processing', 'Completed', 'CSV file successfully processed');
                     const newCSV = new CSV({
                         name: req.file.originalname,
                         itemIDs: [],
@@ -180,17 +175,17 @@ const processCSV = async (req, res) => {
                         csvId = response._id;
                         console.log("ID generated: " + csvId);
 
-                        res.status(200).json({
-                            request_id: csvId,
-                            download_url: `http://localhost:3000/c/download?id=${csvId}`,
-                            status: 'ID generated'
-                        })
+                        // res.status(200).json({
+                        //     request_id: csvId,
+                        //     download_url: `http://localhost:3000/c/download?id=${csvId}`,
+                        //     status: 'ID generated'
+                        // })
 
                     }).catch((error) => {
                         console.error(`Error saving CSV to database: ${error}`);
                         sendWebhookUpdate('Database Upload', 'Failed', 'Error uploading CSV to database');
 
-                        res.status(500).json({ error: 'Internal server error while generating id' });
+                        return res.status(500).json({ error: 'Internal server error while generating id' });
                     });
         
                     resolve();
@@ -228,6 +223,7 @@ const processCSV = async (req, res) => {
     } catch (error) {
         console.error('Error processing CSV:', error);
         res.status(500).json({ error: 'Internal server error' });
+        return null;
     }
 };
 
