@@ -1,21 +1,13 @@
-import fs, { stat } from "fs";
+import fs from "fs";
 import csvParser from "csv-parser";
-import { createObjectCsvWriter as csvWriter } from 'csv-writer';
 import sharp from "sharp";
-import Stream from "stream";
 import path from "path";
 import axios from "axios";
-import { Item } from "../model/item.model.js";
 import { uploadOnCloudinary } from "../cloudinary.js";
 import { sendWebhookUpdate } from "../webhook.js";
-import { json2csv } from 'json-2-csv';
-import objectsToCsv from "objects-to-csv";
-import csvjson from "csvjson";
 import CSV from "../model/csv.model.js";
-import { error } from "console";
 import { updateCSVStatus } from "./csv.controller.js";
 
-let csvId = "";
 
 // Handle the CSV processing and image uploading
 function validateRow(row) {
@@ -104,7 +96,7 @@ async function resizeAndCompressImage(inputFilePath, outputFileName) {
     }
 }
 
-async function uploadToDB(serialNumber, productName, inputImageUrls, outputImageUrls) {
+async function uploadToDB(serialNumber, productName, inputImageUrls, outputImageUrls, csvId) {
     console.log("uploading to db: "+ csvId);
     const jsonData = [];
     try {
@@ -113,6 +105,11 @@ async function uploadToDB(serialNumber, productName, inputImageUrls, outputImage
             name: productName,
             inputImageUrls: inputImageUrls,
             outputImageUrls: outputImageUrls,
+        }
+
+        if (!csvId) {
+            console.error('CSV ID not found');
+            return null;
         }
 
         const response = await CSV.findByIdAndUpdate(csvId, { $push: { items: item } }, { new: true });
@@ -129,12 +126,13 @@ async function uploadToDB(serialNumber, productName, inputImageUrls, outputImage
         //saveDataToCSVAndSendResponse(jsonData);
     } catch (error) {
         console.error(`Error saving item to database: ${error}`);
-        throw error; // Throw error to be caught in the calling function
+        return null;
     }
 }
 
 // Process the uploaded CSV file
 const processCSV = async (req, res) => {
+    let csvId = "";
     try {
         if (!req.file) {
             return res.status(400).json({ error: 'No file uploaded' });
@@ -145,53 +143,57 @@ const processCSV = async (req, res) => {
 
         // Step 1: Process the CSV file
         await new Promise((resolve, reject) => {
-            fs.createReadStream(req.file.path)
+            const readStream = fs.createReadStream(req.file.path)
                 .pipe(csvParser())
                 .on('data', (row) => {
-                    if (validateRow(row)) {     
-                        const inputUrls = row['Input Image Urls'].split(',').map(url => url.trim());
-                        imageUrls.push(...inputUrls);
-                        rows.push({
-                            serialNumber: row['Serial Number'],
-                            productName: row['Product Name'],
-                            inputImageUrls: inputUrls,
-                            outputImageUrls: [] // Placeholder for output URLs
-                        });
+                    try {
+                        if (validateRow(row)) {
+                            const inputUrls = row['Input Image Urls'].split(',').map(url => url.trim());
+                            imageUrls.push(...inputUrls);
+                            rows.push({
+                                serialNumber: row['Serial Number'],
+                                productName: row['Product Name'],
+                                inputImageUrls: inputUrls,
+                                outputImageUrls: [] // Placeholder for output URLs
+                            });
 
-                        console.log(`Row processed: ${JSON.stringify(row)}`);
-                       
-                    } else {
-                        reject(new Error('Invalid CSV format'));
+                            console.log(`Row processed: ${JSON.stringify(row)}`);
+                        } else {
+                            readStream.destroy(); // Stop further processing
+                            reject(new Error('Invalid CSV format'));
+                        }
+                    } catch (error) {
+                        reject(new Error(`Error processing row: ${error.message}`));
                     }
                 })
-                .on('end', () => {
-                    const newCSV = new CSV({
-                        name: req.file.originalname,
-                        itemIDs: [],
-                        status: 'ID generated'
-                    })
+                .on('end', async () => {
+                    try {
+                        const newCSV = new CSV({
+                            name: req.file.originalname,
+                            itemIDs: [],
+                            status: 'ID generated'
+                        });
 
-                    newCSV.save().then((response) => {
+                        const response = await newCSV.save();
                         csvId = response._id;
                         console.log("ID generated: " + csvId);
 
                         res.status(200).json({
                             request_id: csvId,
-                            download_url: `http://localhost:3000/c/download?id=${csvId}`,
-                            status: 'ID generated'
-                        })
+                            download_url: `http://localhost:3000/csv/download?id=${csvId}`,
+                            status: 'ID generated',
+                            status_url: `http://localhost:3000/csv/status?id=${csvId}`
+                        });
 
-                    }).catch((error) => {
+                        resolve();
+                    } catch (error) {
                         console.error(`Error saving CSV to database: ${error}`);
                         sendWebhookUpdate('Database Upload', 'Failed', 'Error uploading CSV to database');
-
-                        return res.status(500).json({ error: 'Internal server error while generating id' });
-                    });
-        
-                    resolve();
+                        return res.status(500).json({ error: 'Internal server error while generating ID' });
+                    }
                 })
                 .on('error', (error) => {
-                    updateCSVStatus(csvId, 'Failed ' + error);
+                    console.error('Error processing CSV file:', error);
                     reject(new Error('Error processing CSV file'));
                 });
         });
@@ -199,34 +201,49 @@ const processCSV = async (req, res) => {
         // Step 2: Process each image sequentially
         for (const row of rows) {
             for (let i = 0; i < row.inputImageUrls.length; i++) {
-                const url = row.inputImageUrls[i];
-                const outputUrl = await processURL(url, `image-${row.serialNumber}-${i}.jpg`);
-                if (outputUrl) {
-                    row.outputImageUrls.push(outputUrl);
-                } else {
-                    console.error(`Failed to process URL: ${url}`);
+                try {
+                    const url = row.inputImageUrls[i];
+                    const outputUrl = await processURL(url, `image-${row.serialNumber}-${i}.jpg`);
+                    if (outputUrl) {
+                        row.outputImageUrls.push(outputUrl);
+                    } else {
+                        console.error(`Failed to process URL: ${url}`);
+                    }
+
+                    // Save the processed data to the database
+                    await uploadToDB(row.serialNumber, row.productName, row.inputImageUrls, row.outputImageUrls, csvId);
+
+                    // Update the status of the CSV
+                    const resp = await updateCSVStatus(csvId, `Processed Image-${i}`);
+                    console.log("Status updated: " + resp);
+                } catch (error) {
+                    console.error(`Error processing image ${i} for row ${row.serialNumber}:`, error);
+                    // Continue processing the next image or row
                 }
-
-                // Save the processed data to the database
-                await uploadToDB(row.serialNumber, row.productName, row.inputImageUrls, row.outputImageUrls);
-
-                // update the status of the csv
-                const resp = await updateCSVStatus(csvId, 'Processed Image-' + i);
-                console.log("Status updated: " + resp);
             }
         }
 
-        // update the status of the csv
-       await updateCSVStatus(csvId, 'Completed');
-        console.log("Status updated: Completed");
+        // Step 3: Update the final status of the CSV
+        try {
+            await updateCSVStatus(csvId, 'Completed');
+            console.log("Status updated: Completed");
+        } catch (error) {
+            console.error('Error updating final status to Completed:', error);
+        }
 
-        // Step 3: Cleanup the uploaded CSV file
-           
-        
     } catch (error) {
         console.error('Error processing CSV:', error);
-        res.status(500).json({ error: 'Internal server error while ' });
-        return null;
+        return res.status(500).json({ error: 'Internal server error during CSV processing' });
+    } finally {
+        // Step 4: Cleanup the uploaded CSV file
+        if (req.file && req.file.path) {
+            try {
+                fs.unlinkSync(req.file.path); // Delete the uploaded CSV file
+                console.log('Uploaded CSV file cleaned up');
+            } catch (cleanupError) {
+                console.error('Error cleaning up uploaded CSV file:', cleanupError);
+            }
+        }
     }
 };
 

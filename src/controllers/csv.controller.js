@@ -92,6 +92,11 @@ function covertJSONtoCSV(jsonData, outputFilePath) {
                 'Output Image Urls': item.outputImageUrls.join(', ')
             }));
 
+            if (csvData.length == 0 || !csvData) {
+                console.error('No data to convert to CSV');
+                return reject('No data to convert to CSV');
+            }
+
             const json2csvParser = new Parser();
             const csv = json2csvParser.parse(csvData);
 
@@ -107,7 +112,7 @@ function covertJSONtoCSV(jsonData, outputFilePath) {
             });
         } catch (error) {
             console.error(`Error converting JSON to CSV: ${error}`);
-            reject(error);
+            return null
         }
     });
 }
