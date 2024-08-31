@@ -175,11 +175,11 @@ const processCSV = async (req, res) => {
                         csvId = response._id;
                         console.log("ID generated: " + csvId);
 
-                        // res.status(200).json({
-                        //     request_id: csvId,
-                        //     download_url: `http://localhost:3000/c/download?id=${csvId}`,
-                        //     status: 'ID generated'
-                        // })
+                        res.status(200).json({
+                            request_id: csvId,
+                            download_url: `http://localhost:3000/c/download?id=${csvId}`,
+                            status: 'ID generated'
+                        })
 
                     }).catch((error) => {
                         console.error(`Error saving CSV to database: ${error}`);
@@ -191,7 +191,7 @@ const processCSV = async (req, res) => {
                     resolve();
                 })
                 .on('error', (error) => {
-                    sendWebhookUpdate('CSV Processing', 'Failed', 'Error processing CSV file');
+                    updateCSVStatus(csvId, 'Failed ' + error);
                     reject(new Error('Error processing CSV file'));
                 });
         });
@@ -217,12 +217,15 @@ const processCSV = async (req, res) => {
         }
 
         // update the status of the csv
-        const resp = await updateCSVStatus(csvId, 'Completed');
-    
+       await updateCSVStatus(csvId, 'Completed');
+        console.log("Status updated: Completed");
+
+        // Step 3: Cleanup the uploaded CSV file
+           
         
     } catch (error) {
         console.error('Error processing CSV:', error);
-        res.status(500).json({ error: 'Internal server error' });
+        res.status(500).json({ error: 'Internal server error while ' });
         return null;
     }
 };
