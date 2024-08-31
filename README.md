@@ -1,4 +1,5 @@
 # Image Processing System
+<img src="https://www.danfoss.com/media/3257/industrial_compressor.jpg" width="500px"/>
 
 This repository contains an Image Processing System designed to process image data from CSV files, compress and upload the images to Cloudinary, store metadata in MongoDB, update the CSV with output image URLs, and provide APIs for status checks and webhook triggers.
 
