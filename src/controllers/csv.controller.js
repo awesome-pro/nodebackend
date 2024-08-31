@@ -112,10 +112,33 @@ function covertJSONtoCSV(jsonData, outputFilePath) {
     });
 }
 
+async function returnStatusOfCSV(id) {
+    try {
+        console.log(`Downloading CSV with id: ${id}`);
+
+        // Step 1: Ensure database connection is established
+        await connectDB();
+
+        // Step 2: Fetch the CSV record from the database
+        const csv = await CSV.findById(id);
+
+        // Step 3: Check if the CSV record exists
+        if (!csv) {
+            return 'CSV not found';
+        }
+
+        return csv.status;
+    } catch (error) {
+        console.error(`Error fetching CSV status: ${error}`);
+        return 'Error fetching CSV status';
+    }
+}
+
 export {
     addCSVToDB,
     getCSVStatusById,
     updateCSVStatus,
     addItemToCSV,
-    downloadCSV
+    downloadCSV,
+    returnStatusOfCSV
 }
