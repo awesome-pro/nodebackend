@@ -191,8 +191,9 @@ const processCSV = async (req, res) => {
                         console.log("ID generated: " + id);
 
                         res.status(200).json({
-                            message: 'CSV validated successfully',
-                            request_id: id
+                            request_id: id,
+                            download_url: `http://localhost:3000/c/download?id=${id}`,
+                            status: 'ID generated'
                         })
 
                     }).catch((error) => {
