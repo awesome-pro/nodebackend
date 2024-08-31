@@ -1,4 +1,3 @@
-import multer from "multer";
 import fs from "fs";
 import csvParser from "csv-parser";
 import { createObjectCsvWriter as csvWriter } from 'csv-writer';
@@ -11,6 +10,7 @@ import { uploadOnCloudinary } from "../cloudinary.js";
 import { sendWebhookUpdate } from "../webhook.js";
 import { json2csv } from 'json-2-csv';
 import objectsToCsv from "objects-to-csv";
+import csvjson from "csvjson";
 
 
 // Handle the CSV processing and image uploading
@@ -96,8 +96,9 @@ async function resizeAndCompressImage(inputFilePath, outputFileName) {
         await sendWebhookUpdate('Resizing Image', 'Completed', 'Image resized and compressed successfully');
 
         // unlink the input  file from the local storage
+        console.log("unlinking the file from local storage" + inputFilePath)
         fs.unlinkSync(inputFilePath);
-        
+
         return outputFilePath;
     } catch (error) {
         console.error(`Error processing image: ${error}`);
@@ -106,6 +107,35 @@ async function resizeAndCompressImage(inputFilePath, outputFileName) {
     }
 }
 
+async function uploadToDB(serialNumber, productName, inputImageUrls, outputImageUrls) {
+    await sendWebhookUpdate('Database Upload', 'In Progress', 'Uploading items to database');
+    const jsonData = [];
+    try {
+        const item = new Item({
+            serialNumber,
+            name: productName,
+            inputImageUrls: inputImageUrls,
+            outputImageUrls: outputImageUrls,
+        });
+        const response = await item.save();
+        console.log(response);
+        if (response) {
+            console.log(`Item saved to database: ${response}`);
+            await sendWebhookUpdate('Database Upload', 'Completed', 'Items uploaded to database');
+            jsonData.push(item);
+        } else {
+            console.log('Item not saved to database');
+            await sendWebhookUpdate('Database Upload', 'Failed', 'Error uploading items to database');
+            return null;
+        }
+
+        //saveDataToCSVAndSendResponse(jsonData);
+    } catch (error) {
+        console.error(`Error saving item to database: ${error}`);
+        await sendWebhookUpdate('Downloading Image', 'In Progress', 'Uploading images to Cloudinary');
+        throw error; // Throw error to be caught in the calling function
+    }
+}
 
 // Process the uploaded CSV file
 const processCSV = async (req, res) => {
@@ -162,71 +192,33 @@ const processCSV = async (req, res) => {
                     row.outputImageUrls.push(outputUrl);
 
                     // delete the file after processing
-                    fs.unlink(outputUrl);
+                   
                 } else {
                     console.error(`Failed to process URL: ${url}`);
                     sendWebhookUpdate('Image Processing', 'Failed', `Failed to process image URL: ${url}`);
                 }
             }
         }
-        // Step 3: Write the output CSV file
-        const writer = async() => {
-            console.log("CSV process in progress");
-            const csv = new objectsToCsv(rows);
-            await csv.toDisk(outputFilePath);
+        console.log('Rows:', rows);
 
-            console.log(await csv.toString());
-        }
+        // Step 3: Save the processed data to a new CSV file
+         await covertJSONtoCSV(rows, outputFilePath);
 
-        sendWebhookUpdate('CSV Writing', 'Completed', 'Output CSV file written successfully');
-
-        for (const row of rows) {
-            console.log(row);
-            const response = await uploadToDB(row.serialNumber, row.productName, row.inputImageUrls, row.outputImageUrls[0]);
-            console.log(response);
-        }
-
-        // Step 5: Send the final response with the path to the generated output CSV file
-        res.json({
-            message: 'CSV processing completed successfully',
-            outputFilePath: outputFilePath,
-        });
-
+         // Send the CSV file back to the client
+         res.download(outputFilePath, 'output.csv', (err) => {
+             if (err) {
+                 console.error('Error downloading CSV:', err);
+                 res.status(500).json({ error: 'Internal server error' });
+             }
+         });
+        
     } catch (error) {
         console.error('Error processing CSV:', error);
         res.status(500).json({ error: 'Internal server error' });
     }
 };
 
-async function uploadToDB(serialNumber, productName, inputImageUrls, outputImageUrls) {
-    await sendWebhookUpdate('Database Upload', 'In Progress', 'Uploading items to database');
-    const jsonData = [];
-    try {
-        const item = new Item({
-            serialNumber,
-            name: productName,
-            inputImageUrls: inputImageUrls,
-            outputImageUrls: outputImageUrls,
-        });
-        const response = await item.save();
-        console.log(response);
-        if (response) {
-            console.log(`Item saved to database: ${response}`);
-            await sendWebhookUpdate('Database Upload', 'Completed', 'Items uploaded to database');
-            jsonData.push(item);
-        } else {
-            console.log('Item not saved to database');
-            await sendWebhookUpdate('Database Upload', 'Failed', 'Error uploading items to database');
-            return null;
-        }
 
-        //saveDataToCSVAndSendResponse(jsonData);
-    } catch (error) {
-        console.error(`Error saving item to database: ${error}`);
-        await sendWebhookUpdate('Downloading Image', 'In Progress', 'Uploading images to Cloudinary');
-        throw error; // Throw error to be caught in the calling function
-    }
-}
 
 const processURL = async (url, filename) => {
     try {
@@ -247,60 +239,27 @@ const processURL = async (url, filename) => {
     }
 };
 
-const saveDataToCSVAndSendResponse = async (jsonData) => {
-    try {
-        // Define the path for the output CSV file
-        const csvFilePath = path.join('public', 'output.csv');
-
-        // Create a CSV writer
-        const csvWriter = createCsvWriter({
-            path: csvFilePath,
-            header: [
-                { id: 'serialNumber', title: 'Serial Number' },
-                { id: 'name', title: 'Product Name' },
-                { id: 'inputImageUrls', title: 'Input Image Urls' },
-                { id: 'outputImageUrl', title: 'Output Image Urls' },
-            ],
-        });
-
-        // Prepare the data to be written to the CSV file
-        const records = jsonData.map(item => ({
-            serialNumber: item.serialNumber,
-            name: item.name,
-            inputImageUrls: item.inputImageUrls.join(','), // Join array elements into a single string
-            outputImageUrls: item.outputImageUrls.join(','),  // Join array elements into a single string
-        }));
-
-        // Write the data to the CSV file
-        // const response = await csvWriter.writeRecords(records);
-        // console.log(response);
-
-        console.log('Data successfully saved to CSV.');
-
-        // Send the CSV file as a response
-        res.download(csvFilePath, 'output.csv', (err) => {
-            if (err) {
-                console.error('Error sending the CSV file:', err);
-                res.status(500).send('Failed to send CSV file.');
-            } else {
-                console.log('CSV file sent successfully.');
-                // Optionally, delete the file after sending it
-                fs.unlink(csvFilePath, (err) => {
-                    if (err) {
-                        console.error('Error deleting the CSV file:', err);
-                    } else {
-                        console.log('CSV file deleted successfully.');
-                    }
-                });
-            }
-        });
-    } catch (error) {
-        console.error('Error processing the request:', error);
-        res.status(500).send('Internal server error while creating csv file');
-    }
-};
 
 // converting back json to csv
+function covertJSONtoCSV(jsonData, outputFilePath) {
+    try {
+        const csvData = csvjson.toCSV(jsonData, {
+            headers: [
+                "serialNumber",
+                "productName",
+                "inputImageUrls",
+                "outputImageUrls"
+            ]
+        });
+
+        // Write the CSV data to a file
+        fs.writeFileSync(outputFilePath, csvData, 'utf-8');
+        console.log('Conversion successful. CSV file created.');
+    } catch (error) {
+        console.error(`Error converting JSON to CSV: ${error}`);
+        throw error;  // Rethrow to be caught in processCSV
+    }
+}
 
 export {
     processCSV,
