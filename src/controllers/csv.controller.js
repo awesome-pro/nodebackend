@@ -55,7 +55,7 @@ async function downloadCSV(res, id) {
 
         // Step 4: Check if the CSV processing is completed
         if (csv.status !== 'Completed') {
-            return res.status(400).json({ error: 'CSV not yet generated', status: csv.status, download_url: `http://localhost:3000/c/download?id=${id}` });
+            return res.status(400).json({ error: 'CSV not yet generated', status: csv.status, download_url: `https://nodebackend-y2pf.onrender.com/csv/download?id=${id}` });
         }
 
         // Step 5: Process the JSON data from the CSV record

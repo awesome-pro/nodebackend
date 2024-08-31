@@ -180,9 +180,9 @@ const processCSV = async (req, res) => {
 
                         res.status(200).json({
                             request_id: csvId,
-                            download_url: `http://localhost:3000/csv/download?id=${csvId}`,
+                            download_url: `https://nodebackend-y2pf.onrender.com/csv/download?id=${csvId}`,
                             status: 'ID generated',
-                            status_url: `http://localhost:3000/csv/status?id=${csvId}`
+                            status_url: `https://nodebackend-y2pf.onrender.com/csv/status?id=${csvId}`
                         });
 
                         resolve();
