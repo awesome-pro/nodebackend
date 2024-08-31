@@ -31,11 +31,20 @@ dbConnect()
     app.post('/webhook', (req, res) => {
         const { process, status, message } = req.body;
         console.log(`Process: ${process}, Status: ${status}, Message: ${message}`);
-        res.status(200).send('Webhook received');
+        res.status(200).json({ message: "Webhook received :)" });
+    });
+
+    app.get('/webhook', (req, res) => {
+        const { process, status, message } = req.body;
+        console.log(`Process: ${process}, Status: ${status}, Message: ${message}`);
+
+        res.status(200).json({ message: "You are on webhook api :)" });
+        
     });
     
 })
 .catch((err) => {
     console.log("MONGO db connection failed !!! ", err);
+    return res.status(500).json({ error: "Internal Server Error, Try Again " });
 })
 
