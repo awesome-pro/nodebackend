@@ -21,11 +21,11 @@ app.get("/", (req, res) => {
 
         <h2>Important Links</h2>
         <ul>
-            <li><a href="https://drive.google.com/file/d/1U6MO_iYUSH8ivsmFPbfIFIi_mvSSxFO3/view?usp=drive_link">API Documentation</a></li>
-            <li><a href="https://app.eraser.io/workspace/Ob3EN5IXxKZW1lOMg3Mi?origin=share">LLD Designs</a></li>
-            <li><a href="https://www.postman.com/abhinandan-verma/workspace/pro-developers/collection/31971900-24b5de3c-0c81-4565-8142-118a0733238e">Postman Collections</a></li>
-            <li><a href="https://www.loom.com/share/ed33d09d5b324f2c98aa300fb5308440?sid=d3f35f09-0f81-405b-93d2-8e434f51cdab">Demo Video</a></li>
-            <li><a href="https://github.com/awesome-pro/nodebackend">Github Repository</a></li>
+            <li><a href="https://drive.google.com/file/d/1U6MO_iYUSH8ivsmFPbfIFIi_mvSSxFO3/view?usp=drive_link" target="_blank">API Documentation</a></li>
+            <li><a href="https://app.eraser.io/workspace/Ob3EN5IXxKZW1lOMg3Mi?origin=share" target="_blank">LLD Designs</a></li>
+            <li><a href="https://www.postman.com/abhinandan-verma/workspace/pro-developers/collection/31971900-24b5de3c-0c81-4565-8142-118a0733238e" target="_blank">Postman Collections</a></li>
+            <li><a href="https://www.loom.com/share/ed33d09d5b324f2c98aa300fb5308440?sid=d3f35f09-0f81-405b-93d2-8e434f51cdab" target="_blank">Demo Video</a></li>
+            <li><a href="https://github.com/awesome-pro/nodebackend" target="_blank">Github Repository</a></li>
         </ul>
         <h2>Important End-Points</h2>
         <ul>
