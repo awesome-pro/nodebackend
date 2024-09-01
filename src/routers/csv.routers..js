@@ -25,6 +25,10 @@ csvRouter.route("/status").get(async (req, res) => {
     const { id } = req.query;
     console.log(`Downloading CSV with id: ${id}`);
 
+    if(!id) {
+        return res.status(400).json({ status: "Congrtats! You are on /status API, Kindly provide id param" });
+    }
+
     if (id.length < 24) {
         return res.status(400).json({ error: "Invalid CSV ID" });
     }
