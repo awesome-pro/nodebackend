@@ -15,7 +15,7 @@ app.use(express.static("public"));
 // on the home api, return a html repnse of app name and description, confirming the app is running
 app.get("/", (req, res) => {
     res.send(`
-        <h1>🚀 Welcome to the Image Compressor System, </br> APP is running :)</h1>
+        <h1>🚀 Welcome to the Image Compressor System, APP is running :)</h1>
         <h2>Introduction</h2>
         <p>This is Image Processing System that processes image data from CSV files. The system will handle CSV file uploads, validate and process images, upload images to Cloudinary, and store relevant data in MongoDB. Finally, it will send the updated CSV data to the API request. It also provides APIs to check the status of processing and trigger webhooks upon completion.</p>
 
@@ -54,8 +54,12 @@ app.get("/", (req, res) => {
                 <li>Receive and parse the CSV file.</li>
                 <li>Validate CSV format (correct number of columns, valid URLs).</li>
                 <li>Generate a unique request ID for tracking.</li>
-                <li>Store the CSV file and request ID in the database.</li>
-                <li>Trigger asynchronous image processing.</li>
+                <li>Download the Image using Axios</li>
+                <li>Compress Image Using Sharp & Multer</li>
+                <li>Upload the Image to Cloudinary</li>
+                <li>Update the database with processed image URLs.</li>
+                <li>Generate the output CSV file with input and output image URLs. using json2csv</li>
+                <li>Send the CSV file to the user on download URL</li>
             </ul>
             <li><strong>Image Processing Service:</strong> Asynchronously processes images by compressing them.</li>
             <ul>
@@ -83,14 +87,6 @@ app.get("/", (req, res) => {
                 <li>Store URLs of processed images and generated output CSV file.</li>
             </ul>
         </ul>
-
-        <h2>Detailed Workflow</h2>
-        <ol>
-            <li><strong>Upload CSV:</strong> User submits a CSV file through the /api API. System validates the CSV format. On success, a unique request ID is generated and returned.</li>
-            <li><strong>Process Images:</strong> System fetches image URLs from the CSV. Images are downloaded and compressed. Processed images are uploaded to the storage service. The output CSV is generated with new image URLs.</li>
-            <li><strong>Check Status:</strong> User queries the status using the /status?id API. System returns the current processing status or a link to the output CSV if completed.</li>
-            <li><strong>Webhook Notification:</strong> Once processing is complete, a webhook notification is sent to the configured endpoint with processing results.</li>
-        </ol>
 
         <h2>Database Schema</h2>
         <p>Mongoose has been used to create the database schema. It consists of CSV Documents. Each document has the following elements:</p>
