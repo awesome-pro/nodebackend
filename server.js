@@ -12,8 +12,9 @@ app.use(express.json({ limit: "16kb" }));
 app.use(express.urlencoded({ extended: true, limit: "16kb" }));
 app.use(express.static("public"));
 
+// on the home api, return a html repnse of app name and description, confirming the app is running
 app.get("/", (req, res) => {
-    res.json({ message: "Hello App is running:)" });
+    res.send("<h1>🚀 Welcome to the Image Compressor System, APP is running :)</h1>");
 });
 
 // Mount the router on a specific route
