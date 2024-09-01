@@ -6,7 +6,7 @@ This repository contains an Image Processing System designed to process image da
 ## Some Important Links
 - [API Documentation](https://drive.google.com/file/d/1U6MO_iYUSH8ivsmFPbfIFIi_mvSSxFO3/view?usp=drive_link)
 - [Postman Collection](https://www.postman.com/abhinandan-verma/workspace/pro-developers/collection/31971900-24b5de3c-0c81-4565-8142-118a0733238e?action=share&creator=31971900)
-- [Demo Video](https://drive.google.com/file/d/1U6MO_iYUSH8ivsmFPbfIFIi_mvSSxFO3/view?usp=drive_link)
+- [Demo Video](https://www.loom.com/share/ed33d09d5b324f2c98aa300fb5308440?sid=d3f35f09-0f81-405b-93d2-8e434f51cdab)
 - [LLD Design](https://app.eraser.io/workspace/Ob3EN5IXxKZW1lOMg3Mi?origin=share)
 - [Live Host](https://nodebackend-y2pf.onrender.com/)
 - [Developer Portfolio](https://abhinandan-v.vercel.app/)
